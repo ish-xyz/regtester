@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/ish-xyz/regtester/pkg/config"
+	"github.com/ish-xyz/regtester/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -36,5 +35,9 @@ func init() {
 func run(cmd *cobra.Command, args []string) {
 	cfg, _ := config.Load(cfgFile)
 
-	fmt.Println(cfg)
+	if err := cfg.Validate(); err != nil {
+		logger.DebugLogger.Println("Configuration loaded: ", cfg)
+		logger.ErrorLogger.Printf("configuration not valid!\n")
+	}
+	logger.DebugLogger.Printf("Configuration valid!\n")
 }

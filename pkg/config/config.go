@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"io/ioutil"
 
 	yaml "gopkg.in/yaml.v2"
@@ -26,5 +27,17 @@ func Load(cfgPath string) (Config, error) {
 
 // Validate configuration against a pre-defined schema
 func (c *Config) Validate() error {
+	if c.Workload.Parallel < 1 {
+		return errors.New("You can't have parallel value lower than 1")
+	}
+
+	if c.Workload.Pulls < 1 {
+		return errors.New("You can't have total downloads lower than 1")
+	}
+
+	if c.Workload.Interval < 1 {
+		return errors.New("You can't have an interval lower than 1")
+	}
+
 	return nil
 }

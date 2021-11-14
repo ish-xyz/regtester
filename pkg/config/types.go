@@ -4,7 +4,7 @@ type Config struct {
 	Connection ConnectionCfg `yaml:"connection"`
 	Registries []string      `yaml:"registries"`
 	Images     []string      `yaml:"images"`
-	Spec       SpecCfg       `yaml:"spec"`
+	Workload   WorkloadCfg   `yaml:"workload"`
 }
 
 type ConnectionCfg struct {
@@ -18,7 +18,7 @@ type BasicAuthCfg struct {
 	Password string `yaml:"password"`
 }
 
-type SpecCfg struct {
-	Pulls         int `yaml:"pulls"`
-	ParallelPulls int `yaml:"parallelPulls"`
+type WorkloadCfg struct {
+	Pulls    int `yaml:"pulls"`
+	Parallel int `yaml:"parallel"`
 }
