@@ -7,7 +7,15 @@ type Controller struct {
 }
 
 type Report struct {
-	FailedLayers int
-	Layers       int
-	Success      bool
+	Image            string
+	Registry         string
+	FailedLayers     int
+	DownloadedLayers int
+	AvgDownloadTime  float64
+	Success          bool
+	ManifestDownload bool
+}
+
+type ReportsList struct {
+	Reports []Report
 }

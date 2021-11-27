@@ -6,10 +6,10 @@ import (
 	"github.com/ish-xyz/regtester/pkg/config"
 )
 
-var conf *config.Config
+var conf config.Config
 
 // Return a new configuration instance
-func NewController(c *config.Config) Controller {
+func NewController(c config.Config) Controller {
 	conf = c
 	return Controller{}
 }

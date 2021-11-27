@@ -9,6 +9,7 @@ import (
 
 // Load configuration file in the path passed as input and \
 // returns a copied value of it.
+
 func Load(cfgPath string) (Config, error) {
 	var c Config
 
@@ -33,10 +34,6 @@ func (c *Config) Validate() error {
 
 	if c.Workload.Pulls < 1 {
 		return errors.New("You can't have total downloads lower than 1")
-	}
-
-	if c.Workload.Interval < 1 {
-		return errors.New("You can't have an interval lower than 1")
 	}
 
 	return nil

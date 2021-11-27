@@ -8,9 +8,10 @@ type Config struct {
 }
 
 type ConnectionCfg struct {
-	BasicAuth    BasicAuthCfg      `yaml:"basicAuth"`
-	CAPath       string            `yaml:"CAPath"`
-	ExtraHeaders map[string]string `yaml:"extraHeaders"`
+	BasicAuth       BasicAuthCfg      `yaml:"basicAuth"`
+	CAPath          string            `yaml:"CAPath"`
+	ExtraHeaders    map[string]string `yaml:"extraHeaders"`
+	ManifestVersion string            `yaml:"manifestVersion"`
 }
 
 type BasicAuthCfg struct {
