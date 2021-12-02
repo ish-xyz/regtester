@@ -1,6 +1,6 @@
 [LOGO here]
 
-**Regtester** is created to run load tests against one or more private registries.
+**Regtester** has been created to run load tests against one or more private registries.
 
 Regetester will:
 1. Run parallel Docker pulls against a registry or multiple registries, requesting one or more docker images
