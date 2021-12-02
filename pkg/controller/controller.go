@@ -18,28 +18,30 @@ func NewController(c config.Config) Controller {
 //		will coordinate the docker pulls
 func (ctrl *Controller) Run() error {
 
-	maxParallel := make(chan int, conf.Workload.Parallel)
+	maxConcPulls := make(chan int, conf.Workload.MaxConcPulls)
 	for x := 0; x <= conf.Workload.Pulls; x++ {
-		maxParallel <- x
-		triggerDockerPull(maxParallel)
+		maxConcPulls <- x
+		go triggerDockerPull(maxConcPulls)
 	}
 	return nil
 }
 
-func pickRegistry() {
+/*
+func selectRegistry() {
 	return
 }
 
-func pickImage() {
+func selectImage() {
 	return
 }
+*/
 
-func triggerDockerPull(maxParallel chan int) {
-	fakeDockerpull()
-	<-maxParallel
+func triggerDockerPull(maxConcPulls chan int) {
+	fakeDockerPull()
+	<-maxConcPulls
 }
 
-func fakeDockerpull() {
+func fakeDockerPull() {
 	time.Sleep(time.Duration(10) * time.Second)
 	/*
 		type Report struct {

@@ -20,6 +20,8 @@ type BasicAuthCfg struct {
 }
 
 type WorkloadCfg struct {
-	Pulls    int `yaml:"pulls"`
-	Parallel int `yaml:"parallel"`
+	Pulls          int  `yaml:"pulls"`
+	MaxConcPulls   int  `yaml:"maxConcPulls"`
+	MaxConcLayers  int  `yaml:"maxConcLayers"`
+	CheckIntegrity bool `yaml:"checkIntegrity"`
 }

@@ -1,12 +1,15 @@
-## Regtester
-
 [LOGO here]
 
-**Regtester** is a tool used to stress test docker registries interfaces, it can:
+**Regtester** is created to run load tests against one or more private registries.
 
-- Run parallel docker pulls against a registry or multiple registries, requesting one or more docker images
-- Customize the requests per registry
-- Collect metrics and push them to Prometheus push-gateway.
+Regetester will:
+1. Run parallel Docker pulls against a registry or multiple registries, requesting one or more docker images
+2. Collect metrics and output them as csv
+
+
+The tool is shipped as CLI and can be extended to support third party systems, such as:
+- Send metrics to prometheus (via PushGateway)
+- customize requests per registry
 
 
 ## Usage
@@ -18,8 +21,8 @@
 ```
 connection:
   basicAuth:
-    username: user
-    password: pass
+    username: ""
+    password: ""
   CAPath: /tmp/ca-bundle.crt
   extraHeaders:
     key: value
@@ -29,19 +32,9 @@ registries:
 images:
 - image:1
 - image:2
-docker:
+workload:
   pulls: 10000
-  parallel: 10
-
-output:
-    prometheus:
-      pushGatewayUrl: https://mypushgateway:7000/
-    csv:
-      path: /tmp/perftest_1.csv
+  maxConcPulls : 10
+  maxConcLayers: 10
+  checkIntegrity: true
 ```
-
-
-## Developer Guide
-
-### How to contribute
-### Add custom outputs

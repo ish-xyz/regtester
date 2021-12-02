@@ -28,7 +28,7 @@ func Load(cfgPath string) (Config, error) {
 
 // Validate configuration against a pre-defined schema
 func (c *Config) Validate() error {
-	if c.Workload.Parallel < 1 {
+	if c.Workload.MaxConcPulls < 1 {
 		return errors.New("You can't have parallel value lower than 1")
 	}
 

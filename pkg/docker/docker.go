@@ -1,12 +1,15 @@
 package docker
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ish-xyz/regtester/pkg/config"
@@ -22,12 +25,22 @@ func NewDockerClient(c config.Config) *DockerClient {
 		Password:        c.Connection.BasicAuth.Password,
 		ExtraHeaders:    c.Connection.ExtraHeaders,
 		ManifestVersion: c.Connection.ManifestVersion,
+		CheckIntegrity:  c.Workload.CheckIntegrity,
+		MaxConcLayers:   c.Workload.MaxConcLayers,
 	}
 }
 
 func basicAuth(username, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+func sumDownloadTimeArray(times []float64) float64 {
+	sumItems := 0.0
+	for _, value := range times {
+		sumItems += value
+	}
+	return sumItems
 }
 
 // Create http request
@@ -42,20 +55,47 @@ func createRequest(method, url string, headers http.Header) (*http.Request, erro
 	return req, nil
 }
 
-// Download Layer
-func (d *DockerClient) GetLayer(url string, headers http.Header) error {
+// Download a Docker Layer
+func (d *DockerClient) GetLayer(url string, headers http.Header) (float64, error) {
 
+	//TODO implement retry
 	req, err := createRequest("GET", url, headers)
 	if err != nil {
-		return err
+		return 0.0, err
 	}
+
+	start := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return (float64(time.Since(start)) / 1000000000), err
+
 	}
 	defer resp.Body.Close()
-	// check if the body is right
-	return nil
+
+	secondsElapsed := float64(time.Since(start)) / 1000000000
+
+	if d.CheckIntegrity {
+		logger.DebugLogger.Println("Running integrity Check")
+		// Get downloaded layer sha256
+		layerData, _ := ioutil.ReadAll(resp.Body)
+		layerSHA25632Bytes := sha256.Sum256(layerData)
+		layerSHA256 := hex.EncodeToString(layerSHA25632Bytes[:])
+
+		// Get desired sha256
+		urlSplit := strings.Split(url, "/")
+		desiredSHA256 := strings.Split(urlSplit[len(urlSplit)-1:][0], ":")[1]
+		fmt.Println(desiredSHA256)
+
+		if desiredSHA256 != layerSHA256 {
+			logger.WarningLogger.Println("Integrity check failed!")
+			return secondsElapsed, fmt.Errorf(
+				"checksum failed for layer sha256:%s",
+				desiredSHA256,
+			)
+		}
+	}
+
+	return secondsElapsed, nil
 }
 
 // Get the manifest of a Docker image from a given registry
@@ -77,13 +117,15 @@ func (d *DockerClient) GetManifest(url string, headers http.Header) (ImageManife
 	body, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(body, &manifest)
 
-	return manifest, nil
+	return manifest, err
 }
 
-// Pull a docker image
+// Pull a Docker image
 func (d *DockerClient) Pull(registry, image string) (controller.Report, error) {
-	// Get manifest of the image
 
+	var wg sync.WaitGroup
+
+	maxConcLayers := make(chan int, d.MaxConcLayers)
 	report := controller.Report{
 		Image:            image,
 		Registry:         registry,
@@ -93,7 +135,6 @@ func (d *DockerClient) Pull(registry, image string) (controller.Report, error) {
 		Success:          false,
 		ManifestDownload: true,
 	}
-
 	avgTime := []float64{}
 	headers := make(http.Header)
 	imageParts := strings.Split(image, ":")
@@ -111,33 +152,38 @@ func (d *DockerClient) Pull(registry, image string) (controller.Report, error) {
 		return report, err
 	}
 
-	for _, layer := range manifest.Layers {
+	// Download layers in parallel with a limit
+	for index, layer := range manifest.Layers {
 
-		layerUrl := fmt.Sprintf("%s/v2/%s/blobs/%s", registry, imageName, layer.Digest)
-		// Remove Accept header as it's not needed for layers
-		headers["Accept"] = []string{}
+		maxConcLayers <- index
+		wg.Add(1)
 
-		logger.DebugLogger.Printf("Downloading layer: %s\n", layerUrl)
-		start := time.Now()
-		err := d.GetLayer(layerUrl, headers)
-		if err != nil {
-			report.FailedLayers += 1
-		} else {
-			report.DownloadedLayers += 1
-		}
-		secondsElapsed := float64(time.Now().Sub(start)) / 1000000000
-		avgTime = append(avgTime, secondsElapsed)
+		go func(wg *sync.WaitGroup, layer Layer) {
+
+			defer wg.Done()
+
+			layerUrl := fmt.Sprintf("%s/v2/%s/blobs/%s", registry, imageName, layer.Digest)
+			headers["Accept"] = []string{}
+
+			logger.DebugLogger.Printf("Downloading layer: %s\n", layerUrl)
+			_, err := d.GetLayer(layerUrl, headers)
+			if err != nil {
+				report.FailedLayers += 1
+			} else {
+				report.DownloadedLayers += 1
+			}
+
+			<-maxConcLayers
+		}(&wg, layer)
 	}
 
-	sumArray := func(times []float64) float64 {
-		sumItems := 0.0
-		for _, value := range times {
-			sumItems += value
+	wg.Wait()
+	/*
+		for recording := range recordExecutionTimes {
+			avgTime = append(avgTime, recording)
 		}
-		return sumItems
-	}
-
-	report.AvgDownloadTime = sumArray(avgTime) / float64(len(avgTime))
+	*/
+	report.AvgDownloadTime = sumDownloadTimeArray(avgTime) / float64(len(avgTime))
 
 	if report.FailedLayers == 0 {
 		report.Success = true

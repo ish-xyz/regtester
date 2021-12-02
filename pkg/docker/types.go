@@ -5,6 +5,8 @@ type DockerClient struct {
 	Password        string
 	ExtraHeaders    map[string]string
 	ManifestVersion string
+	CheckIntegrity  bool
+	MaxConcLayers   int
 }
 
 type ImageManifestV2 struct {
@@ -15,9 +17,11 @@ type ImageManifestV2 struct {
 		Size      int    `json:"size"`
 		Digest    string `json:"digest"`
 	}
-	Layers []struct {
-		MediaType string `json:"mediaType"`
-		Size      int    `json:"size"`
-		Digest    string `json:"digest"`
-	}
+	Layers []Layer
+}
+
+type Layer struct {
+	MediaType string `json:"mediaType"`
+	Size      int    `json:"size"`
+	Digest    string `json:"digest"`
 }
